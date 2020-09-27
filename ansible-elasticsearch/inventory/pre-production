@@ -1,0 +1,17 @@
+[all:vars]
+env=pre-production
+
+
+[java]
+3.7.249.147
+35.154.146.241
+15.206.210.175
+
+[elasticsearch]
+
+3.7.249.147 node_name=node-1
+35.154.146.241  node_name=node-2
+15.206.210.175 node_name=node-3
+
+
+

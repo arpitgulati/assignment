@@ -1,0 +1,13 @@
+---
+# tasks file for app
+- include: add_deploy_key.yml
+  tags:
+    - code_pull
+
+- include: create_directory_structure.yml
+  tags:
+    - code_pull
+
+- include: code_pull.yml
+  tags:
+    - code_pull

@@ -1,0 +1,14 @@
+[all:vars]
+
+
+
+[java]
+localhost
+
+[elasticsearch]
+localhost
+
+[logstash]
+localhost
+
+

@@ -1,0 +1,14 @@
+---
+  - name: Create root project directory
+    file: path={{ project_base_path }} state=directory owner=www-data group=www-data mode=0775
+
+  - name: Create symlink to directory
+    file: src={{ project_base_path }} dest={{ project_short_path }} state=link owner=www-data group=www-data
+
+  - name: Creates empty directory for logs
+    file: path={{ item }} state=directory owner={{ deploy_user_name }} group={{ deploy_user_name }} mode=0777
+    with_items:
+      - "{{ project_logs_path }}"
+
+#  - name: Create directory to store db dump
+#    file: path={{ db_dump_path }} state=directory owner={{ wsgi_user }} group={{ wsgi_group }} mode=0777

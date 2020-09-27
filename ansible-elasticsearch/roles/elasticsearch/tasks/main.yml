@@ -1,0 +1,166 @@
+---
+# - include_tasks: setup-RedHat.yml
+#   when: ansible_os_family == 'RedHat'
+
+# - include_tasks: setup-Debian.yml
+#   when: ansible_os_family == 'Debian'
+
+#- name: Install Elasticsearch.
+#  package:
+#    name: elasticsearch
+#    state: "{{ elasticsearch_package_state }}"
+
+- name: Download deb file from the elasicsearch URL
+  get_url:
+    url: "{{ elasticsearch_url }}" 
+    dest: "/tmp/{{ elasticsearch_package_name }}.deb"
+
+- name: Install Elasticsearch
+  apt: deb="/tmp/{{ elasticsearch_package_name }}.deb"
+  become: true  
+
+- name: adding file and memory limit
+  become: true
+  blockinfile:
+    path: /etc/security/limits.conf
+    backup: yes
+    block: |
+      elasticsearch soft nofile 65536
+      elasticsearch hard nofile 65536
+      elasticsearch soft memlock unlimited
+      elasticsearch hard memlock unlimited
+
+#- name: Add IP address of all hosts to all hosts
+#  become: true
+#  lineinfile:
+#    dest: /etc/hosts
+#    line: "{{ item }} {{ node_name }}"
+#    state: present
+#  when: hostvars[item].ansible_host is defined
+#  with_items: "{{ groups.elasticsearch }}"
+
+- name: adding ip address to host file
+  become: true
+  blockinfile:
+    path: /etc/hosts
+    backup: yes
+    block: |
+      3.7.249.147 node-1
+      35.154.146.241  node-2
+      15.206.210.175 node-3
+
+- name: ensure certificate directory exists
+  become: yes
+  file:
+    dest: "{{ es_ssl_certificate_path }}"
+    state: directory
+    owner: root
+    group: "{{ es_group }}"
+    mode: "750"
+
+- name: installing elasticsearch certificate
+  become: true
+  become: true
+  become_user: root
+  shell: |
+    { echo '/etc/elasticsearch/certs/elastic-stack-ca.p12';  echo 'password';} | script --return --quiet -c "/usr/share/elasticsearch/bin/elasticsearch-certutil ca"
+    { echo 'password';  echo '/etc/elasticsearch/certs/elastic-certificates.p12';  echo 'password';} | script --return --quiet -c "/usr/share/elasticsearch/bin/elasticsearch-certutil cert --ca /etc/elasticsearch/certs/elastic-stack-ca.p12"
+    chown elasticsearch:elasticsearch {{ es_ssl_certificate_path }}/elastic-certificates.p12
+    echo "password" | /usr/share/elasticsearch/bin/elasticsearch-keystore add xpack.security.transport.ssl.keystore.secure_password
+    echo "password" | /usr/share/elasticsearch/bin/elasticsearch-keystore add xpack.security.transport.ssl.truststore.secure_password
+  # notify: restart elasticsearch
+
+- name: Configure Elasticsearch.
+  template:
+    src: "{{ item }}.j2"
+    dest: /etc/elasticsearch/{{ item }}
+    owner: root
+    group: elasticsearch
+    mode: 0660
+  with_items:
+    - elasticsearch.yml
+    - jvm.options
+#  notify: restart elasticsearch
+
+- name: Create Bootstrap password for elastic user
+  become: yes
+  shell: echo {{ es_api_basic_auth_password | quote }} | {{ es_home }}/bin/elasticsearch-keystore add -x 'bootstrap.password'
+  when:
+    - es_api_basic_auth_username is defined and list_keystore is defined and es_api_basic_auth_username == 'elastic' and 'bootstrap.password' not in list_keystore.stdout_lines
+  environment:
+    ES_PATH_CONF: "{{ es_conf_dir }}"
+  no_log: true
+
+- name: installing elasticsearch plugins
+  become: true
+  become: true
+  become_user: root
+  shell: echo 'y'| /usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3  && echo 'y' | /usr/share/elasticsearch/bin/elasticsearch-plugin install discovery-ec2
+  notify: restart elasticsearch
+  
+- name: Force a restart if configuration has changed.
+  meta: flush_handlers
+
+- name: Start Elasticsearch.
+  service:
+    name: elasticsearch
+    state: "{{ elasticsearch_service_state }}"
+    enabled: "{{ elasticsearch_service_enabled }}"
+
+- name: Make sure Elasticsearch is running before proceeding.
+  wait_for:
+    host: "{{ elasticsearch_network_host }}"
+    port: "{{ elasticsearch_http_port }}"
+    delay: 3
+    timeout: 300
+
+
+# - name: install ruby
+#   apt: name=ruby-full state=latest update-cache=yes force=yes
+#   become: true
+#   become_user: root
+
+# - name: installing systemd_mon
+#   become: true
+#   become_user: root
+#   shell: gem install systemd_mon
+
+# - name: installing slack notifier
+#   become: true
+#   become_user: root
+#   shell: gem install slack-notifier
+
+# - name: Configure systemd_mon.yml
+#   template:
+#     src: "{{ item }}.j2"
+#     dest: /etc/{{ item }}
+#     owner: root
+#     group: elasticsearch
+#     mode: 0660
+#   with_items:
+#     - systemd_mon.yml
+
+# - name: Create system_mon service
+#   template:
+#     src: "{{ item }}.j2"
+#     dest: /etc/systemd/system/{{ item }}
+#     owner: root
+#     #group: elasticsearch
+#     mode: 0666
+#   with_items:
+#     - systemd_mon.service
+
+# - name: systemd enable 
+#   become: true
+#   become_user: root
+#   shell: systemctl enable systemd_mon
+
+# - name: changing permission
+#   become: true
+#   become_user: root
+#   shell: chmod 666  /etc/systemd_mon.yml
+
+# - name: Starting systemd_mon service 
+#   become: true
+#   become_user: root
+#   shell: systemctl start systemd_mon

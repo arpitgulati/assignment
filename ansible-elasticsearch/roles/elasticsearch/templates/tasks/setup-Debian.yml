@@ -1,0 +1,24 @@
+---
+#- name: Add required dependencies.
+#  apt:
+#    name:
+#      - apt-transport-https
+#      - gnupg2
+#    state: present
+#
+#- name: Add Elasticsearch apt key.
+#  apt_key:
+#    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+#    state: present
+#
+#- name: Add Elasticsearch repository.
+#  apt_repository:
+#    repo: 'deb https://artifacts.elastic.co/packages/{{ elasticsearch_version }}/apt stable main'
+#    state: present
+#    update_cache: true
+
+- name: Download deb file from the elasicsearch URL
+  get_url:
+    url: "{{ elasticsearch_url }}" 
+    dest: "/tmp/{{ elasticsearch_package_name }}.deb"
+#    checksum: shasum -a 512 -c elasticsearch-7.6.1-amd64.deb.sha512

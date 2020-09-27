@@ -1,0 +1,103 @@
+input {
+
+  kafka {
+  bootstrap_servers => "{{ brokers_ip }}"
+  codec => json
+  topics => {{ kafka_topics }}
+  group_id => "logstash-{{ realm }}-{{ arena }}"
+  fetch_min_bytes => "1"
+  fetch_max_bytes => "5242880"
+  request_timeout_ms => "3050000"
+  session_timeout_ms => "300000"
+  max_poll_records => "10000"
+  max_poll_interval_ms => "600000"
+  decorate_events => true
+  }
+  
+}
+
+filter {
+
+    mutate { gsub => [ "log", '"\d{10}(?!\d{1,3}$)"', "###" ] }
+    mutate { gsub => [ "log", '"\d{16}(?!\d{1,3}$)"', "###" ] }
+    mutate { gsub => [ "log", '"[A-Za-z0-9\-\._~\+\/]+_."', "###" ] }
+    mutate { gsub => [ "log", "([a-z0-9_\.-]+)@", "###" ] }
+    mutate { gsub => [ "log", "'\d{10}(?!\d{1,3}$)'", "###" ] }
+    mutate { gsub => [ "log", '"(\w+)-(\w+)-(\w+)-(\w+)-(\w+)"', "###" ] }
+    mutate { gsub => [ "x_application_token", "(\w+)-(\w+)-(\w+)-(\w+)-(\w+)", "###" ] }
+    mutate { gsub => [ "x_application_token", "[A-Za-z0-9\-\._~\+\/]+_.", "###" ] }
+    mutate { gsub => [ "sms_payload", "'\d{10}(?!\d{1,3}$)'", "###" ] }
+    mutate { gsub => [ "delivery_address", "'\d{10}(?!\d{1,3}$)'", "###" ] }
+    mutate { gsub => [ "receiver_number", "\d{10}(?!\d{1,3}$)", "###" ] }
+    mutate { gsub => [ "sms_payload", "([a-z0-9_\.-]+)@", "###" ] }
+    mutate { gsub => [ "delivery_address", "([a-z0-9_\.-]+)@", "###" ] }
+    mutate { gsub => [ "notify", "([a-z0-9_\.-]+)@", "###" ] }
+
+    json {
+     source => "log"
+     add_field => {
+           "Masking" => "True"
+        }
+     skip_on_invalid_json => true
+     }
+     mutate {
+       convert => {
+        "status" => "string"
+        "uid" => "string"
+        "data" => "string"
+        "error" => "string"
+        "ex" => "string"
+        "logger_id_identifier" => "string"
+        "logger_search_id" => "string"
+        "query.uid" => "string"
+        "offset" => "string"
+        "search_id" => "string"
+        "response" => "string"
+      }
+    }
+    mutate {
+      add_field => {
+       "appdatetime1" => "%{@timestamp}"
+       "json" => "true"
+       "kafka_topic" => "%{[@metadata][kafka][topic]}"
+        }
+     }
+    date {
+      match => [ "timestamp", "MMM dd YYYY HH:mm:ss.SSS","UNIX","UNIX_MS"]
+      target => "appdatetime"
+    }
+    mutate {
+      remove_field => ["asctime","_@timestamp","[kubernetes][labels][app]","[kubernetes][labels][app.kubernetes.io/component]","[kubernetes][labels][app.kubernetes.io/instance]","[kubernetes][labels][app.kubernetes.io/name]"]
+    }
+
+
+}
+
+
+output {
+    if "core" in [kafka_topic] {
+      elasticsearch {
+        hosts => {{ elasticsearch_output }}
+        index => "{{ realm }}-{{ arena }}-core-logs-%{[kubernetes][namespace_name]}-%{+YYYY.MM.dd}"
+      }
+    }
+    else if "hosting" in [kafka_topic] {
+      elasticsearch {
+         hosts => {{ elasticsearch_output }}
+         index => "{{ realm }}-{{ arena }}-hosting-logs-%{[kubernetes][namespace_name]}-%{+YYYY.MM.dd}"
+      }
+    }
+
+   else if "loadtest" in [kafka_topic] {
+      elasticsearch {
+         hosts => {{ elasticsearch_output }}
+         index => "{{ realm }}-{{ arena }}-loadtest-logs-%{[kubernetes][namespace_name]}-%{+YYYY.MM.dd}"
+      }
+    }
+    else if "etl" in [kafka_topic] {
+      elasticsearch {
+         hosts => {{ elasticsearch_output }}
+         index => "{{ realm }}-{{ arena }}-etl-logs-%{[kubernetes][namespace_name]}-%{+YYYY.MM.dd}"
+      }
+    }
+}

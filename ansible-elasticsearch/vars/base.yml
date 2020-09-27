@@ -1,0 +1,9 @@
+---
+project_user: deploy
+project_user_group: deploy
+# project_repo: git@gitlab.com:fynd/regrowth/ansible-elasticsearch.git
+# project_root: /srv/ansible-elasticsearch
+github_host_name: github.com
+gitlab_host_name: gitlab.com
+security_mode: plaintext
+deploy_branch: master

@@ -1,0 +1,72 @@
+---
+
+  - name: ensure github is a known host
+    shell: "ssh-keyscan {{ github_host_name }} >> /home/{{deploy_user_name}}/.ssh/known_hosts"
+    become: true
+    become_user: "{{ deploy_user_name}}"
+
+  - name: ensure gitlab is a known host
+    shell: "ssh-keyscan {{ gitlab_host_name }} >> /home/{{deploy_user_name}}/.ssh/known_hosts"
+    become: true
+    become_user: "{{ deploy_user_name}}"
+
+  - name: Configure git repo user name
+    git_config: name=user.name scope=system value={{ deploy_user_name }} repo={{ project_short_path }}
+
+  - name: Configure git repo user email
+    git_config: name=user.email scope=system value={{ deploy_user_email }} repo={{ project_short_path }}
+
+  - name: Delete all .pyc files
+    command: find . -name '*.pyc' -delete
+    args:
+      chdir: "{{ project_short_path }}"
+    become: yes
+    become_user: "{{ deploy_user_name }}"
+
+  - name: Git status
+    shell: "git status"
+    args:
+      chdir: "{{ project_short_path }}"
+    register: git_status
+    become: yes
+    become_user: "{{ deploy_user_name }}"
+    ignore_errors: true
+
+  # Hack to workaround - https://github.com/ansible/ansible-modules-core/issues/5504
+  - name: Pull code from Git repo using ansible git module
+    action: git repo={{ git_ssh_url }} dest={{ project_base_path }} remote=gitlab version={{ git_branch }} accept_hostkey=yes force=yes
+    become: yes
+    become_user: "{{ deploy_user_name }}"
+    register: git_deploy
+    until: git_deploy|succeeded
+    ignore_errors: true
+
+  #  - name: Pull code from code commit due to gitlab/github failure
+  #    action: git repo={{ git_ssh_url_code_commit }} dest={{ project_base_path }} remote=gitlab version={{ git_branch }} accept_hostkey=yes force=yes
+  #    become: yes
+  #    become_user: "{{ deploy_user_name }}"
+  #    register: git_deploy_codecommit
+  #    until: git_deploy_codecommit|succeeded
+  #    when: git_deploy is failed
+
+  - name: Clean working tree prior to git pull
+    shell: "git checkout ."
+    args:
+      chdir: "{{ project_short_path }}"
+    become: yes
+    become_user: deploy
+
+  - name: Reset working tree to earlier state
+    shell: "git reset HEAD"
+    args:
+      chdir: "{{ project_short_path }}"
+    become: yes
+    become_user: deploy
+
+  - name: Pull code from Git repo
+    shell: "git pull gitlab {{ git_branch }}"
+    args:
+      chdir: "{{ project_short_path }}"
+    become: yes
+    become_user: "{{ deploy_user_name }}"
+    when: git_deploy is not failed

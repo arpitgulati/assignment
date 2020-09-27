@@ -1,0 +1,46 @@
+- name: Gather facts from all hosts
+  hosts: all
+
+- include: set_facts.yml
+  tags:
+    - always
+
+- name: Install Oracle Java
+  hosts: java
+  become: true
+  tags: 
+    - java
+  vars_files:
+          - vars/base.yml
+          - vars/credentials.yml
+  roles:
+    - java11
+
+- name: Install Elasticsearch
+  hosts: elasticsearch
+  become: true
+  become_user: root
+  become_method: sudo
+  tags: elasticsearch
+  vars_files:
+          - vars/base.yml
+          - vars/credentials.yml
+          - env_vars/{{ env }}.yml
+  roles:
+    - elasticsearch
+
+- name: Install logstash
+  hosts: logstash
+  become: true
+  become_user: root
+  become_method: sudo
+  tags: 
+    - logstash
+  vars_files:
+          - vars/base.yml
+          - env_vars/{{ env }}.yml
+          - vars/credentials.yml
+  roles:
+    - logstash
+
+

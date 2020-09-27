@@ -1,0 +1,4 @@
+- name: Copy deploy user's private key
+  copy: content="{{ deploy_user_key }}" dest=/home/{{deploy_user_name }}/.ssh/id_rsa force=yes mode=0600
+  become: true
+  become_user: "{{ deploy_user_name }}"

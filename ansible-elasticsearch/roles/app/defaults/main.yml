@@ -1,0 +1,13 @@
+---
+# defaults file for app
+project_base_path: /srv/project_mongodb/regrowth-mongodb
+project_short_path: /srv/regrowth-mongodb
+
+deploy_user_name: deploy
+deploy_user_email: deployer@gofynd.com
+fynd_user_name: fynd
+git_ssh_url : git@gitlab.com:fynd/regrowth/infrastructure/regrowth-mongodb.git
+#git_ssh_url_code_commit: ssh://git-codecommit.ap-south-1.amazonaws.com/v1/repos/orbis
+github_host_name: github.com
+gitlab_host_name: gitlab.com
+project_logs_path: /var/log/fynd

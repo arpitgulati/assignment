@@ -1,0 +1,22 @@
+---
+elasticsearch_version: 7.8.1
+elasticsearch_package_state: present
+
+elasticsearch_service_state: restarted
+elasticsearch_service_enabled: true
+
+elasticsearch_network_host: 0.0.0.0
+elasticsearch_http_port: 9200
+
+elasticsearch_heap_size_min: 2g
+elasticsearch_heap_size_max: 2g
+
+elasticsearch_package_name: elasticsearch-{{ elasticsearch_version }}
+elasticsearch_url: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-{{ elasticsearch_version }}-amd64.deb'
+
+es_group: elasticsearch
+es_ssl_certificate_path: "/etc/elasticsearch/certs"
+es_home: /usr/share/elasticsearch
+es_conf_dir: /etc/elasticsearch
+es_api_basic_auth_username: elastic
+es_api_basic_auth_password: password

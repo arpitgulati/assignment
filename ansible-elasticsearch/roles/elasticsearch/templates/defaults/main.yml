@@ -1,0 +1,15 @@
+---
+elasticsearch_version: '7.0'
+elasticsearch_package_state: present
+
+elasticsearch_service_state: started
+elasticsearch_service_enabled: true
+
+elasticsearch_network_host: 0.0.0.0
+elasticsearch_http_port: 9200
+
+elasticsearch_heap_size_min: 1g
+elasticsearch_heap_size_max: 1g
+
+elasticsearch_package_name: 'elasticsearch-7.6.1'
+elasticsearch_url: 'https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.6.1-amd64.deb'

@@ -1,0 +1,63 @@
+---
+- name: Include OS Specific setup tasks
+  include: setup-{{ ansible_os_family }}.yml
+
+- include: config.yml
+#- include: ssl.yml
+#- include: plugins.yml
+
+- name: Ensure Logstash is started and enabled on boot.
+  service:
+    name: logstash
+    state: started
+    enabled: "{{ logstash_enabled_on_boot }}"
+
+- name: install ruby
+  apt: name=ruby-full state=latest update-cache=yes force=yes
+  become: true
+  become_user: root
+
+- name: installing systemd_mon
+  become: true
+  become_user: root
+  shell: gem install systemd_mon
+
+- name: installing slack notifier
+  become: true
+  become_user: root
+  shell: gem install slack-notifier
+
+- name: Configure systemd_mon.yml
+  template:
+    src: "{{ item }}.j2"
+    dest: /etc/{{ item }}
+    owner: root
+    #group: elasticsearch
+    mode: 0660
+  with_items:
+    - systemd_mon.yml
+
+- name: Create system_mon service
+  template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
+    owner: root
+    #group: elasticsearch
+    mode: 0660
+  with_items:
+    - systemd_mon.service
+
+- name: changing permission
+  become: true
+  become_user: root
+  shell: chmod 666  /etc/systemd_mon.yml
+
+- name: systemd enable 
+  become: true
+  become_user: root
+  shell: systemctl enable systemd_mon
+
+- name: Starting systemd_mon service 
+  become: true
+  become_user: root
+  shell: systemctl start systemd_mon
